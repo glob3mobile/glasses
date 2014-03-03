@@ -1,0 +1,11 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/yellowIberia" >
+
+    <TextView
+        style="@style/TextStyle"
+        android:drawableLeft="@drawable/ic_launcher"
+        android:text="@string/g3m" />
+
+</FrameLayout>
