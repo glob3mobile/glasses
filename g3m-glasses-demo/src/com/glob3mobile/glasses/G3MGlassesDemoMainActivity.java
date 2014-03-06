@@ -43,7 +43,9 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.glob3mobile.glasses.OrientationManager.OnChangedListener;
 
@@ -78,6 +80,7 @@ public class G3MGlassesDemoMainActivity
    protected PowerManager.WakeLock wakelock;
    private OrientationManager      _om;
    Geodetic2D                      _lastPosition = null;
+   private LinearLayout            _layout;
 
 
    @Override
@@ -96,7 +99,7 @@ public class G3MGlassesDemoMainActivity
       _om = new OrientationManager(sensorManager, locationManager);
       _om.start();
 
-      final LinearLayout layout = (LinearLayout) findViewById(R.id.glob3);
+      _layout = (LinearLayout) findViewById(R.id.glob3);
 
 
       final G3MBuilder_Android builder = new G3MBuilder_Android(this);
@@ -124,15 +127,10 @@ public class G3MGlassesDemoMainActivity
 
       builder.addRenderer(_iconRenderer);
 
-      //  final Geodetic2D position = new Geodetic2D(Angle.fromDegrees(39.15), Angle.fromDegrees(-77.6));
-
-
-      //  builder.getPlanetRendererBuilder().setRenderDebug(true);
-      builder.getPlanetRendererBuilder().setQuality(Quality.QUALITY_LOW);
+      builder.getPlanetRendererBuilder().setQuality(Quality.QUALITY_HIGH);
       builder.setBackgroundColor(Color.fromRGBA255(135, 206, 235, 255));
 
       builder.addPeriodicalTask(getDataRetrievementPeriodicalTask());
-      //   builder.getPlanetRendererBuilder().setRenderTileMeshes(false);
 
       _g3mWidget = builder.createWidget();
 
@@ -169,7 +167,7 @@ public class G3MGlassesDemoMainActivity
       });
 
 
-      layout.addView(_g3mWidget);
+      _layout.addView(_g3mWidget);
    }
 
 
@@ -222,6 +220,13 @@ public class G3MGlassesDemoMainActivity
 
             if ((_lastPosition == null) || (getDistance(_lastPosition, currentPosition) > 500.0)) {
 
+               runOnUiThread(new Runnable() {
+
+                  @Override
+                  public void run() {
+                     ((TextView) findViewById(R.id.data)).setVisibility(View.VISIBLE);
+                  }
+               });
 
                WikipediaDataRetriever.getNearbyWikipediaArticles(context, currentLatitude, currentLongitude,
                         G3MGlassesDemoMainActivity.this);
@@ -247,21 +252,20 @@ public class G3MGlassesDemoMainActivity
    }
 
 
-   //   @Override
-   //   final protected void onResume() {
-   //      super.onResume();
-   //      ILogger.instance().logError("Resume");
-   //
-   //
-   //      ILogger.instance().logInfo("Resume");
-   //      _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
-   //         @Override
-   //         public void run(final G3MContext context) {
-   //            _g3mWidget.onResume();
-   //         }
-   //      }, true);
-   //
-   //   }
+   @Override
+   final protected void onResume() {
+      super.onResume();
+      ILogger.instance().logError("Resume");
+      wakelock.acquire();
+      //
+      //      _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
+      //         @Override
+      //         public void run(final G3MContext context) {
+      //            _g3mWidget.onResume();
+      //         }
+      //      }, true);
+
+   }
 
 
    @Override
@@ -274,6 +278,15 @@ public class G3MGlassesDemoMainActivity
          this.wakelock.release();
          System.exit(0);
       }
+      //      else {
+      //         _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
+      //            @Override
+      //            public void run(final G3MContext context) {
+      //               _g3mWidget.onPause();
+      //               wakelock.release();
+      //            }
+      //         }, true);
+      //      }
 
       //      ILogger.instance().logInfo("On Pause: is finishing:" + isFinishing());
       //      if (isFinishing()) {
@@ -317,6 +330,15 @@ public class G3MGlassesDemoMainActivity
    public void onWikipediaArticlesRetrieved(final ArrayList<WikipediaArticle> articles) {
 
       ILogger.instance().logInfo("Retrieved " + articles.size() + " from geonames service");
+
+      runOnUiThread(new Runnable() {
+
+         @Override
+         public void run() {
+            ((TextView) findViewById(R.id.data)).setVisibility(View.INVISIBLE);
+         }
+      });
+
 
       for (final WikipediaArticle article : articles) {
 

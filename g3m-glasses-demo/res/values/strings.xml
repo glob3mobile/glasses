@@ -4,4 +4,5 @@
     <string name="g3m">Glob3 Mobile</string>
     <string name="close">Close</string>
     <string name="image_description">Image</string>
+    <string name="retrieving">searching data &#8230;</string>
 </resources>

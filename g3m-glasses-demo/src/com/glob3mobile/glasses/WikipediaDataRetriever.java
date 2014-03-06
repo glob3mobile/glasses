@@ -102,7 +102,7 @@ public class WikipediaDataRetriever {
       };
 
       downloaderLocation.requestBuffer(new URL("http://api.geonames.org/findNearbyWikipediaJSON?lat=" + lat + "&lng=" + lon
-                                               + "9&username=mdelacalle", false), 0, TimeInterval.fromHours(1), false,
+                                               + "9&username=mdelacalle&radius=20", false), 0, TimeInterval.fromHours(1), false,
                listenerLocation, false);
 
 

@@ -4,12 +4,27 @@
     android:layout_height="match_parent"
     tools:context=".G3MGlassesDemoMainActivity" >
 
-   <LinearLayout
+       <LinearLayout
            android:id="@+id/glob3"
            android:keepScreenOn="true"
            android:layout_width="fill_parent"
            android:layout_height="match_parent"
            android:orientation="horizontal" >
+
+
+
+
     </LinearLayout>
+    
+           <TextView
+           android:id="@+id/data"
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:layout_weight="1"
+           android:visibility="visible"
+           android:ems="10"
+           android:text="@string/retrieving" />
+    
+
 
 </RelativeLayout>
