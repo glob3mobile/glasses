@@ -19,9 +19,93 @@ import org.glob3.mobile.generated.URL;
 import org.glob3.mobile.specific.JSONParser_Android;
 
 
-public class WikipediaDataRetriever {
+public class POIDataRetriever {
 
-   public WikipediaDataRetriever() {
+   public POIDataRetriever() {
+   }
+
+
+   public static void getNearbyPlaces(final G3MContext context,
+                                      final double lat,
+                                      final double lon,
+                                      final String types,
+                                      final G3MGlassesDemoListener listener) {
+
+      final IDownloader downloaderLocation = context.getDownloader();
+
+      final IBufferDownloadListener listenerLocation = new IBufferDownloadListener() {
+
+         @Override
+         public void onDownload(final URL url,
+                                final IByteBuffer buffer,
+                                final boolean expired) {
+
+            final String response = buffer.getAsString();
+            final IJSONParser parser = new JSONParser_Android();
+            final JSONBaseObject jsonObject = parser.parse(response);
+            final JSONObject object = jsonObject.asObject();
+            final JSONArray results = object.getAsArray("results");
+
+            final ArrayList<GooglePlaceItem> gpitemArray = new ArrayList<GooglePlaceItem>();
+
+            for (int i = 0; i < results.size(); i++) {
+
+               final GooglePlaceItem item = new GooglePlaceItem();
+
+               final JSONObject result = results.getAsObject(i);
+               final JSONObject geometry = result.getAsObject("geometry");
+               final JSONObject location = geometry.getAsObject("location");
+
+               final double latItem = location.getAsNumber("lat", 0.0);
+               final double lonItem = location.getAsNumber("lng", 0.0);
+
+               final Geodetic3D position = new Geodetic3D(Angle.fromDegrees(latItem), Angle.fromDegrees(lonItem), 0.0);
+               item.setPosition(position);
+
+               final String urlIcon = result.getAsString("icon", "");
+               final String name = result.getAsString("name", "");
+               final String reference = result.getAsString("reference", "");
+               item.setTitle(name);
+               item.setReference(reference);
+               item.setUrlIcon(urlIcon);
+               gpitemArray.add(item);
+            }
+
+            listener.onGooglePlacePOIsRetrieved(gpitemArray);
+
+         }
+
+
+         @Override
+         public void onError(final URL url) {
+            // TODO Auto-generated method stub
+
+         }
+
+
+         @Override
+         public void onCancel(final URL url) {
+            // TODO Auto-generated method stub
+
+         }
+
+
+         @Override
+         public void onCanceledDownload(final URL url,
+                                        final IByteBuffer buffer,
+                                        final boolean expired) {
+            // TODO Auto-generated method stub
+
+         }
+      };
+
+
+      downloaderLocation.requestBuffer(new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat
+               + "," + lon + "&types=" + types
+               + "&radius=500&sensor=false&key=AIzaSyA_5m4agh4i8voQ8fdEaeOgkpb1EJt0_OI", false),
+               0, TimeInterval.fromHours(1), false, listenerLocation, false);
+
+
    }
 
 
@@ -72,7 +156,7 @@ public class WikipediaDataRetriever {
             }
 
 
-            listener.onWikipediaArticlesRetrieved(articles);
+            listener.onWikipediaPOIsRetrieved(articles);
 
          }
 

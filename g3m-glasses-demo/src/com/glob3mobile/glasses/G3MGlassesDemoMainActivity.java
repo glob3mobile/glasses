@@ -18,7 +18,6 @@ import org.glob3.mobile.generated.HUDRelativeSize;
 import org.glob3.mobile.generated.HUDRenderer;
 import org.glob3.mobile.generated.ILogger;
 import org.glob3.mobile.generated.LayerSet;
-import org.glob3.mobile.generated.MapBoxLayer;
 import org.glob3.mobile.generated.Mark;
 import org.glob3.mobile.generated.MarkTouchListener;
 import org.glob3.mobile.generated.MarkUserData;
@@ -26,11 +25,13 @@ import org.glob3.mobile.generated.MarksRenderer;
 import org.glob3.mobile.generated.MercatorUtils;
 import org.glob3.mobile.generated.PeriodicalTask;
 import org.glob3.mobile.generated.Quality;
+import org.glob3.mobile.generated.Sector;
 import org.glob3.mobile.generated.TimeInterval;
 import org.glob3.mobile.generated.Touch;
 import org.glob3.mobile.generated.TouchEvent;
 import org.glob3.mobile.generated.TouchEventType;
 import org.glob3.mobile.generated.URL;
+import org.glob3.mobile.generated.URLTemplateLayer;
 import org.glob3.mobile.generated.Vector2I;
 import org.glob3.mobile.specific.G3MBuilder_Android;
 import org.glob3.mobile.specific.G3MWidget_Android;
@@ -40,14 +41,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.view.KeyEvent;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.glob3mobile.glasses.OrientationManager.OnChangedListener;
+import com.google.android.glass.media.Sounds;
+import com.google.android.glass.touchpad.Gesture;
+import com.google.android.glass.touchpad.GestureDetector;
 
 
 public class G3MGlassesDemoMainActivity
@@ -56,20 +63,31 @@ public class G3MGlassesDemoMainActivity
          implements
             G3MGlassesDemoListener {
 
-   public class WpUserData
+   public class ItemUserData
             extends
                MarkUserData {
 
-      private final String _wpURL;
-
-
-      public WpUserData(final String wpURL) {
-         this._wpURL = wpURL;
-      }
+      private String _wpURL;
+      private String _googlePlaceReference;
 
 
       public String getWpURL() {
          return _wpURL;
+      }
+
+
+      public String getGooglePlaceReference() {
+         return _googlePlaceReference;
+      }
+
+
+      public void setGooglePlaceReference(final String googlePlaceReference) {
+         _googlePlaceReference = googlePlaceReference;
+      }
+
+
+      public void setWpURL(final String wpURL) {
+         _wpURL = wpURL;
       }
 
    }
@@ -83,10 +101,14 @@ public class G3MGlassesDemoMainActivity
    private LinearLayout            _layout;
 
 
+   private GestureDetector         mGestureDetector;
+
+
    @Override
    protected void onCreate(final Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
 
+      mGestureDetector = createGestureDetector(getApplicationContext());
 
       final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
       this.wakelock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "G3M Google Glasses");
@@ -105,14 +127,24 @@ public class G3MGlassesDemoMainActivity
       final G3MBuilder_Android builder = new G3MBuilder_Android(this);
 
 
-      final MapBoxLayer mboxAerialLayer = new MapBoxLayer("examples.map-m0t0lrpu", TimeInterval.fromDays(30), true, 2);
-      mboxAerialLayer.setTitle("Map Box Aerial");
-      mboxAerialLayer.setEnable(true);
+      builder.getPlanetRendererBuilder().setDefaultTileBackGroundImage(
+               new DownloaderImageBuilder(new URL("file:///_TEXTURE_GREEN_DARK.png")));
+      builder.getPlanetRendererBuilder().setForceFirstLevelTilesRenderOnStart(false);
+
+      final URLTemplateLayer greyLayer = URLTemplateLayer.newWGS84("file:///___TEXTURE_MAGENTA.png", Sector.FULL_SPHERE, false,
+               0, 6, TimeInterval.zero());
+
+
+      //      final MapBoxLayer mboxAerialLayer = new MapBoxLayer("examples.map-m0t0lrpu", TimeInterval.fromDays(30), true, 2);
+      //      mboxAerialLayer.setTitle("Map Box Aerial");
+      //      mboxAerialLayer.setEnable(true);
 
       final LayerSet layerSet = new LayerSet();
-      layerSet.addLayer(mboxAerialLayer);
+      layerSet.addLayer(greyLayer);
 
       builder.getPlanetRendererBuilder().setLayerSet(layerSet);
+      //      builder.getPlanetRendererBuilder().setRenderDebug(true);
+      //      builder.getPlanetRendererBuilder().setRenderTileMeshes(false);
 
       final HUDRenderer hudRenderer = new HUDRenderer();
       final HUDQuadWidget xImg = new HUDQuadWidget(new DownloaderImageBuilder(new URL("file:///x.png")), new HUDRelativePosition(
@@ -127,7 +159,7 @@ public class G3MGlassesDemoMainActivity
 
       builder.addRenderer(_iconRenderer);
 
-      builder.getPlanetRendererBuilder().setQuality(Quality.QUALITY_HIGH);
+      builder.getPlanetRendererBuilder().setQuality(Quality.QUALITY_LOW);
       builder.setBackgroundColor(Color.fromRGBA255(135, 206, 235, 255));
 
       builder.addPeriodicalTask(getDataRetrievementPeriodicalTask());
@@ -172,36 +204,20 @@ public class G3MGlassesDemoMainActivity
 
 
    @Override
-   public boolean onKeyDown(final int keycode,
-                            final KeyEvent event) {
-
-
-      ILogger.instance().logError("Event:" + event.toString());
-
-      if (keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
-
-         final Touch t = new Touch(new Vector2I(320, 180), new Vector2I(320, 180));
-         final TouchEvent te = TouchEvent.create(TouchEventType.DownUp, t);
-         _g3mWidget.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-               _g3mWidget.getG3MWidget().onTouchEvent(te);
-            }
-         });
-
-
-         ILogger.instance().logError("CLICK");
-         return true;
-      }
-      else if (keycode == KeyEvent.KEYCODE_BACK) {
-         ILogger.instance().logError("killing the app");
-         stopService(new Intent(this, G3MGlassesDemoService.class));
-         this.wakelock.release();
-         System.exit(0);
-         return true;
+   public boolean onGenericMotionEvent(final MotionEvent event) {
+      if (mGestureDetector != null) {
+         return mGestureDetector.onMotionEvent(event);
       }
       return false;
+   }
 
+
+   @Override
+   public boolean onCreateOptionsMenu(final Menu menu) {
+
+      // Inflate the menu; this adds items to the action bar if it is present.
+      getMenuInflater().inflate(R.menu.main_menu, menu);
+      return true;
    }
 
 
@@ -228,8 +244,12 @@ public class G3MGlassesDemoMainActivity
                   }
                });
 
-               WikipediaDataRetriever.getNearbyWikipediaArticles(context, currentLatitude, currentLongitude,
+               //               POIDataRetriever.getNearbyWikipediaArticles(context, currentLatitude, currentLongitude,
+               //                        G3MGlassesDemoMainActivity.this);
+
+               POIDataRetriever.getNearbyPlaces(context, currentLatitude, currentLongitude, "food",
                         G3MGlassesDemoMainActivity.this);
+
 
                _lastPosition = currentPosition;
             }
@@ -257,14 +277,6 @@ public class G3MGlassesDemoMainActivity
       super.onResume();
       ILogger.instance().logError("Resume");
       wakelock.acquire();
-      //
-      //      _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
-      //         @Override
-      //         public void run(final G3MContext context) {
-      //            _g3mWidget.onResume();
-      //         }
-      //      }, true);
-
    }
 
 
@@ -274,44 +286,9 @@ public class G3MGlassesDemoMainActivity
 
       if (isFinishing()) {
          ILogger.instance().logError("killing the app");
-         stopService(new Intent(this, G3MGlassesDemoService.class));
          this.wakelock.release();
          System.exit(0);
       }
-      //      else {
-      //         _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
-      //            @Override
-      //            public void run(final G3MContext context) {
-      //               _g3mWidget.onPause();
-      //               wakelock.release();
-      //            }
-      //         }, true);
-      //      }
-
-      //      ILogger.instance().logInfo("On Pause: is finishing:" + isFinishing());
-      //      if (isFinishing()) {
-      //
-      //         _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
-      //            @Override
-      //            public void run(final G3MContext context) {
-      //               _g3mWidget.onDestroy();
-      //               //     System.exit(0);
-      //            }
-      //         }, true);
-      //
-      //
-      //      }
-      //      else {
-      //
-      //         _g3mWidget.getG3MContext().getThreadUtils().invokeInRendererThread(new GTask() {
-      //            @Override
-      //            public void run(final G3MContext context) {
-      //               _g3mWidget.onPause();
-      //            }
-      //         }, true);
-      //
-      //
-      //      }
 
    }
 
@@ -320,15 +297,49 @@ public class G3MGlassesDemoMainActivity
    final protected void onDestroy() {
       ILogger.instance().logInfo("destroy");
       super.onDestroy();
-      stopService(new Intent(this, G3MGlassesDemoService.class));
-      System.exit(0);
+      finish();
+   }
+
+
+   private GestureDetector createGestureDetector(final Context context) {
+      final GestureDetector gestureDetector = new GestureDetector(context);
+      //Create a base listener for generic gestures
+      gestureDetector.setBaseListener(new GestureDetector.BaseListener() {
+         @Override
+         public boolean onGesture(final Gesture gesture) {
+            if (gesture == Gesture.TWO_TAP) {
+               Log.d(G3MGlassesDemoMainActivity.class.toString(), "two taps options menu");
+               openOptionsMenu();
+               return true;
+            }
+            else if (gesture == Gesture.TAP) {
+               final AudioManager audio = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+               audio.playSoundEffect(Sounds.DISALLOWED);
+               Log.d(G3MGlassesDemoMainActivity.class.toString(), "one tap");
+               final Touch t = new Touch(new Vector2I(320, 180), new Vector2I(320, 180));
+               final TouchEvent te = TouchEvent.create(TouchEventType.DownUp, t);
+               _g3mWidget.queueEvent(new Runnable() {
+                  @Override
+                  public void run() {
+                     _g3mWidget.getG3MWidget().onTouchEvent(te);
+                  }
+               });
+
+               return true;
+            }
+            return false;
+         }
+
+
+      });
+
+      return gestureDetector;
 
    }
 
 
    @Override
-   public void onWikipediaArticlesRetrieved(final ArrayList<WikipediaArticle> articles) {
-
+   public void onWikipediaPOIsRetrieved(final ArrayList<WikipediaArticle> articles) {
       ILogger.instance().logInfo("Retrieved " + articles.size() + " from geonames service");
 
       runOnUiThread(new Runnable() {
@@ -342,20 +353,26 @@ public class G3MGlassesDemoMainActivity
 
       for (final WikipediaArticle article : articles) {
 
+
          final Mark m = new Mark(article.getTitle(),//
                   new URL("http://icons.iconarchive.com/icons/sykonist/popular-sites/256/Wikipedia-icon.png", false), //
                   new Geodetic3D(article.getPosition()._latitude, article.getPosition()._longitude, 0), //
                   AltitudeMode.RELATIVE_TO_GROUND, 0);
 
-         m.setUserData(new WpUserData(article.getWikipediaURL()));
+         final ItemUserData iud = new ItemUserData();
+         iud.setWpURL(article.getWikipediaURL());
+         m.setUserData(iud);
 
          _iconRenderer.setMarkTouchListener(new MarkTouchListener() {
 
             @Override
             public boolean touchedMark(final Mark mark) {
-               ILogger.instance().logError(
+               ILogger.instance().logInfo(
                         "Marker positioned in:" + mark.getPosition().description() + ", URL:"
-                                 + ((WpUserData) mark.getUserData()).getWpURL());
+                                 + ((ItemUserData) mark.getUserData()).getWpURL());
+
+               final AudioManager audio = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+               audio.playSoundEffect(Sounds.SUCCESS);
 
                runOnUiThread(new Runnable() {
 
@@ -363,7 +380,7 @@ public class G3MGlassesDemoMainActivity
                   public void run() {
 
                      final Intent intent = new Intent(G3MGlassesDemoMainActivity.this, WikipediaViewActivity.class);
-                     intent.putExtra("url", "http://" + ((WpUserData) mark.getUserData()).getWpURL());
+                     intent.putExtra("url", "http://" + ((ItemUserData) mark.getUserData()).getWpURL());
                      G3MGlassesDemoMainActivity.this.startActivity(intent);
                   }
                });
@@ -376,7 +393,64 @@ public class G3MGlassesDemoMainActivity
          _iconRenderer.addMark(m);
 
       }
+   }
 
 
+   @Override
+   public void onGooglePlacePOIsRetrieved(final ArrayList<GooglePlaceItem> items) {
+      ILogger.instance().logInfo("Retrieved " + items.size() + " from google play service");
+
+      runOnUiThread(new Runnable() {
+
+         @Override
+         public void run() {
+            ((TextView) findViewById(R.id.data)).setVisibility(View.INVISIBLE);
+         }
+      });
+
+
+      for (final GooglePlaceItem item : items) {
+
+
+         final Mark m = new Mark(item.getTitle(),//
+                  new URL(item.getUrlIcon(), false), //
+                  new Geodetic3D(item.getPosition()._latitude, item.getPosition()._longitude, 0), //
+                  AltitudeMode.RELATIVE_TO_GROUND, 0);
+
+         //  m.setUserData(new WpUserData(item.getWikipediaURL()));
+
+         _iconRenderer.setMarkTouchListener(new MarkTouchListener() {
+
+            @Override
+            public boolean touchedMark(final Mark mark) {
+               ILogger.instance().logInfo(
+                        "Marker positioned in:" + mark.getPosition().description() + ", URL:"
+                                 + ((ItemUserData) mark.getUserData()).getGooglePlaceReference());
+
+               final AudioManager audio = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+               audio.playSoundEffect(Sounds.SUCCESS);
+
+               runOnUiThread(new Runnable() {
+
+                  @Override
+                  public void run() {
+
+                     Log.d("TAP:", "On the place");
+
+                     //Show a target//
+                     //                     final Intent intent = new Intent(G3MGlassesDemoMainActivity.this, WikipediaViewActivity.class);
+                     //                     intent.putExtra("url", "http://" + ((WpUserData) mark.getUserData()).getWpURL());
+                     //                     G3MGlassesDemoMainActivity.this.startActivity(intent);
+                  }
+               });
+
+
+               return false;
+            }
+         }, true);
+
+         _iconRenderer.addMark(m);
+
+      }
    }
 }

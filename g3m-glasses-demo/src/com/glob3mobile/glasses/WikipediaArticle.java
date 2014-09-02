@@ -2,17 +2,15 @@
 
 package com.glob3mobile.glasses;
 
-import org.glob3.mobile.generated.Geodetic3D;
 
+public class WikipediaArticle
+extends
+G3MGlassItem {
 
-public class WikipediaArticle {
-
-   String     _summary;
-   String     _title;
-   String     _wikipediaURL;
-   double     _lon;
-   double     _lat;
-   Geodetic3D _position;
+   String _summary;
+   String _wikipediaURL;
+   double _lon;
+   double _lat;
 
 
    public WikipediaArticle() {
@@ -27,16 +25,6 @@ public class WikipediaArticle {
 
    public void setSummary(final String summary) {
       _summary = summary;
-   }
-
-
-   public String getTitle() {
-      return _title;
-   }
-
-
-   public void setTitle(final String title) {
-      this._title = title;
    }
 
 
@@ -67,16 +55,6 @@ public class WikipediaArticle {
 
    public void setLat(final double lat) {
       this._lat = lat;
-   }
-
-
-   public Geodetic3D getPosition() {
-      return _position;
-   }
-
-
-   public void setPosition(final Geodetic3D position) {
-      this._position = position;
    }
 
 

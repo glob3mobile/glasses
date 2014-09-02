@@ -6,5 +6,8 @@ import java.util.ArrayList;
 
 
 public interface G3MGlassesDemoListener {
-   void onWikipediaArticlesRetrieved(ArrayList<WikipediaArticle> articles);
+   void onWikipediaPOIsRetrieved(ArrayList<WikipediaArticle> articles);
+
+
+   void onGooglePlacePOIsRetrieved(ArrayList<GooglePlaceItem> articles);
 }

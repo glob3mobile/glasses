@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Glob3 Mobile</string>
-    <string name="g3m">Glob3 Mobile</string>
+    <string name="g3m">explore</string>
     <string name="close">Close</string>
+    <string name="wikipedia">wikipedia</string>
+    <string name="foursquare">foursquare</string>
     <string name="image_description">Image</string>
     <string name="retrieving">searching data &#8230;</string>
 </resources>
