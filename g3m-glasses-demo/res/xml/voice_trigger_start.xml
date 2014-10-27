@@ -1,1 +1,7 @@
-<trigger keyword="@string/g3m" />
+<?xml version="1.0" encoding="utf-8"?>
+<trigger command="EXPLORE_NEARBY" >
+     <constraints
+        gps="true"
+        location="true"
+        network="true" />
+     </trigger>

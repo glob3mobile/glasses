@@ -4,7 +4,7 @@
     android:background="@color/yellowIberia" >
 
     <TextView
-        style="@style/TextStyle"
+ 
         android:drawableLeft="@drawable/ic_launcher"
         android:text="@string/g3m" />
 

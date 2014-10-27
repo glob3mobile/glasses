@@ -18,11 +18,15 @@ import org.glob3.mobile.generated.TimeInterval;
 import org.glob3.mobile.generated.URL;
 import org.glob3.mobile.specific.JSONParser_Android;
 
+import android.util.Log;
+
 
 public class POIDataRetriever {
 
    public POIDataRetriever() {
    }
+
+   private final static String TAG = "POIDataRetriever";
 
 
    public static void getNearbyPlaces(final G3MContext context,
@@ -34,6 +38,7 @@ public class POIDataRetriever {
       final IDownloader downloaderLocation = context.getDownloader();
 
       final IBufferDownloadListener listenerLocation = new IBufferDownloadListener() {
+
 
          @Override
          public void onDownload(final URL url,
@@ -59,13 +64,27 @@ public class POIDataRetriever {
                final double latItem = location.getAsNumber("lat", 0.0);
                final double lonItem = location.getAsNumber("lng", 0.0);
 
+
                final Geodetic3D position = new Geodetic3D(Angle.fromDegrees(latItem), Angle.fromDegrees(lonItem), 0.0);
                item.setPosition(position);
 
+               final JSONArray photos = result.getAsArray("photos");
+
+
+               if (photos != null) {
+                  final JSONObject photo = photos.getAsObject(0);
+                  item.setMainPhotoReference(photo.getAsString("photo_reference", ""));
+               }
+               final double distance = MathUtils.getDistance(lat, lon, latItem, lonItem);
+
+               item.setDistance((int) (distance * 1000));
+
                final String urlIcon = result.getAsString("icon", "");
                final String name = result.getAsString("name", "");
+               final String vicinity = result.getAsString("vicinity", "");
                final String reference = result.getAsString("reference", "");
                item.setTitle(name);
+               item.setVicinity(vicinity);
                item.setReference(reference);
                item.setUrlIcon(urlIcon);
                gpitemArray.add(item);
@@ -100,9 +119,12 @@ public class POIDataRetriever {
       };
 
 
+      Log.e(TAG, "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat + "," + lon + "&types=" + types
+                 + "&radius=500&sensor=false&key=AIzaSyA_5m4agh4i8voQ8fdEaeOgkpb1EJt0_OI");
+
       downloaderLocation.requestBuffer(new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat
-               + "," + lon + "&types=" + types
-               + "&radius=500&sensor=false&key=AIzaSyA_5m4agh4i8voQ8fdEaeOgkpb1EJt0_OI", false),
+                                               + "," + lon + "&types=" + types
+                                               + "&radius=500&sensor=false&key=AIzaSyA_5m4agh4i8voQ8fdEaeOgkpb1EJt0_OI", false),
                0, TimeInterval.fromHours(1), false, listenerLocation, false);
 
 

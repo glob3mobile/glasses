@@ -20,7 +20,6 @@ import org.glob3.mobile.generated.ILogger;
 import org.glob3.mobile.generated.LayerSet;
 import org.glob3.mobile.generated.Mark;
 import org.glob3.mobile.generated.MarkTouchListener;
-import org.glob3.mobile.generated.MarkUserData;
 import org.glob3.mobile.generated.MarksRenderer;
 import org.glob3.mobile.generated.MercatorUtils;
 import org.glob3.mobile.generated.PeriodicalTask;
@@ -63,36 +62,6 @@ public class G3MGlassesDemoMainActivity
          implements
             G3MGlassesDemoListener {
 
-   public class ItemUserData
-            extends
-               MarkUserData {
-
-      private String _wpURL;
-      private String _googlePlaceReference;
-
-
-      public String getWpURL() {
-         return _wpURL;
-      }
-
-
-      public String getGooglePlaceReference() {
-         return _googlePlaceReference;
-      }
-
-
-      public void setGooglePlaceReference(final String googlePlaceReference) {
-         _googlePlaceReference = googlePlaceReference;
-      }
-
-
-      public void setWpURL(final String wpURL) {
-         _wpURL = wpURL;
-      }
-
-   }
-
-
    private G3MWidget_Android       _g3mWidget;
    MarksRenderer                   _iconRenderer = new MarksRenderer(false);
    protected PowerManager.WakeLock wakelock;
@@ -131,13 +100,10 @@ public class G3MGlassesDemoMainActivity
                new DownloaderImageBuilder(new URL("file:///_TEXTURE_GREEN_DARK.png")));
       builder.getPlanetRendererBuilder().setForceFirstLevelTilesRenderOnStart(false);
 
+
       final URLTemplateLayer greyLayer = URLTemplateLayer.newWGS84("file:///___TEXTURE_MAGENTA.png", Sector.FULL_SPHERE, false,
                0, 6, TimeInterval.zero());
 
-
-      //      final MapBoxLayer mboxAerialLayer = new MapBoxLayer("examples.map-m0t0lrpu", TimeInterval.fromDays(30), true, 2);
-      //      mboxAerialLayer.setTitle("Map Box Aerial");
-      //      mboxAerialLayer.setEnable(true);
 
       final LayerSet layerSet = new LayerSet();
       layerSet.addLayer(greyLayer);
@@ -257,18 +223,18 @@ public class G3MGlassesDemoMainActivity
          }
 
 
-         private double getDistance(final Geodetic2D lastPosition,
-                                    final Geodetic2D currentPosition) {
-            final double lastPositionLon = MercatorUtils.longitudeToMeters(lastPosition._longitude);
-            final double lastPositionLat = MercatorUtils.longitudeToMeters(lastPosition._latitude);
-            final double currentPositionLon = MercatorUtils.longitudeToMeters(currentPosition._longitude);
-            final double currentPositionLat = MercatorUtils.longitudeToMeters(currentPosition._latitude);
-            return Math.sqrt(Math.pow(2, (lastPositionLat - currentPositionLat))
-                             + Math.pow(2, (lastPositionLon - currentPositionLon)));
-         }
-
       });
       return task;
+   }
+
+
+   private double getDistance(final Geodetic2D lastPosition,
+                              final Geodetic2D currentPosition) {
+      final double lastPositionLon = MercatorUtils.longitudeToMeters(lastPosition._longitude);
+      final double lastPositionLat = MercatorUtils.longitudeToMeters(lastPosition._latitude);
+      final double currentPositionLon = MercatorUtils.longitudeToMeters(currentPosition._longitude);
+      final double currentPositionLat = MercatorUtils.longitudeToMeters(currentPosition._latitude);
+      return Math.sqrt(Math.pow(2, (lastPositionLat - currentPositionLat)) + Math.pow(2, (lastPositionLon - currentPositionLon)));
    }
 
 
@@ -417,7 +383,14 @@ public class G3MGlassesDemoMainActivity
                   new Geodetic3D(item.getPosition()._latitude, item.getPosition()._longitude, 0), //
                   AltitudeMode.RELATIVE_TO_GROUND, 0);
 
-         //  m.setUserData(new WpUserData(item.getWikipediaURL()));
+         final ItemUserData iud = new ItemUserData();
+         iud.setGooglePlaceReference(item.getReference());
+         iud.setName(item.getTitle());
+         iud.setPhoto(item.getMainPhotoReference());
+         iud.setDistance("" + item.getDistance());
+         iud.setVicinity("" + item.getVicinity());
+         iud.setLatlon(item.getPosition()._latitude + "," + item.getPosition()._longitude);
+         m.setUserData(iud);
 
          _iconRenderer.setMarkTouchListener(new MarkTouchListener() {
 
@@ -437,10 +410,17 @@ public class G3MGlassesDemoMainActivity
 
                      Log.d("TAP:", "On the place");
 
-                     //Show a target//
-                     //                     final Intent intent = new Intent(G3MGlassesDemoMainActivity.this, WikipediaViewActivity.class);
-                     //                     intent.putExtra("url", "http://" + ((WpUserData) mark.getUserData()).getWpURL());
-                     //                     G3MGlassesDemoMainActivity.this.startActivity(intent);
+                     final Intent intent = new Intent(G3MGlassesDemoMainActivity.this, GooglePlaceActivity.class);
+                     intent.putExtra("url", "http://" + ((ItemUserData) mark.getUserData()).getGooglePlaceReference());
+                     intent.putExtra("title", ((ItemUserData) mark.getUserData()).getName());
+                     intent.putExtra("distance", ((ItemUserData) mark.getUserData()).getDistance());
+                     intent.putExtra("photo", ((ItemUserData) mark.getUserData()).getPhoto());
+                     intent.putExtra("vicinity", ((ItemUserData) mark.getUserData()).getVicinity());
+                     intent.putExtra("latlon", ((ItemUserData) mark.getUserData()).getLatlon());
+
+                     G3MGlassesDemoMainActivity.this.startActivity(intent);
+
+
                   }
                });
 
